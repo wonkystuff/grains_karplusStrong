@@ -115,7 +115,7 @@ void loop()
 
   accum.phase_inc = pgm_read_word(&octaveLookup[analogRead(1)]);
 
-  if ((stimAmp > 3) &&
+  if ((stimAmp != 0) &&
       (lastStimAmp < stimAmp))
   {
     int i;
