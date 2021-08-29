@@ -1,5 +1,10 @@
 /* 
  *  Karplus-Strong synthesis example
+ *  
+ *  Controls:
+ *   Input 1: trigger
+ *   Input 2: Pitch
+ *   Input 3: Stimulation type (choice of noise, saw or square - mostly noise though)
  *
  * Copyright (C) 2021  John A. Tuffen
  *
