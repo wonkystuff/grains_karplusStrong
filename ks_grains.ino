@@ -48,7 +48,7 @@
 
 #define WTSIZE  256u
 
-uint8_t waveTable[WTSIZE];
+char waveTable[WTSIZE];
 
 typedef struct {
   uint16_t phase;
@@ -122,31 +122,40 @@ void loop()
     uint8_t stimShift = 7 - stimAmp;  // 7-0
     for(i=0; i<WTSIZE;i++)
     {
-      uint8_t v=0;
+      char v=0;
       switch (stimType)
       {
+        case 0:
+          v = i < 128 ? (i*2) - 128 : ((255-i)*2)-128;
+          break;
         case 4:
-          v = i;             // ramp
+          v = i-128;             // ramp
           break;
         case 7:
-          v = (i<128) ? 0 : 255;  // square
+          v = (i<128) ? -128 : 127;  // square
           break;
         default:
-          v = wsRnd8();  // noise
+          v = wsRnd8() - 128;  // noise
           break;
       }
-      waveTable[i] = v >> stimShift;
-
+      waveTable[i] += v >> stimShift;
     }
   }
   lastStimAmp = stimAmp;
 }
 
+#define TWO (1)
+
 // deal with oscillator
 ISR(TIMER0_COMPA_vect)
 {
-  uint8_t outVal = 0;
-  static uint8_t lastOut=0x80;
+  char outVal = 0;
+#ifdef TWO
+  static char lastOut=0;
+#else
+  static char avBuf[4];
+  static int avIdx;
+#endif
 
   uint8_t p = (accum.phase + 128) >> 8; // Wavetable is 256 entries, so shift the
                                         // 16bit phase-accumulator value to leave us with 8bits
@@ -155,12 +164,17 @@ ISR(TIMER0_COMPA_vect)
                                         // actual phase to the nearest integer. Sounds better
                                         // than simple truncation)
   outVal = waveTable[p];                // read the wavetable value at the current phase position
+#ifdef TWO
   waveTable[p] = (lastOut+outVal)/2;    // write back to the wavetable the average of the last
                                         // output and this output
   lastOut = outVal;
+#else
+  avBuf[avIdx++] = outVal;
+  avIdx &=0x03;
+  waveTable[p] = avBuf[0]/4 + avBuf[1]/4 + avBuf[2]/4 + avBuf[3]/4;
+#endif
   
   accum.phase += accum.phase_inc;       // move the oscillator's phase-accumulator on
 
-  // invert the wave for the second half
-  OSCOUTREG = outVal;
+  OSCOUTREG = 0x80 + outVal;
 }
